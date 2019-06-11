@@ -29,7 +29,7 @@ fn main() {
             exit(1);
         }
 
-        println!("Got keys {:?}", keys);
+        println!("Got keys {} keys: {:?}", keys.len(), keys);
         let mut good_keys: Vec<String> = Vec::new();
         for value in keys {
             let url: String =
