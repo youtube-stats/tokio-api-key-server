@@ -9,4 +9,6 @@ name = "keys"
 path = "src/main.rs"
 
 [dependencies]
+rand = "0.6.5"
 tokio = "0.1.21"
+ureq = "0.10.0"

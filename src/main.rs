@@ -1,4 +1,6 @@
+extern crate rand;
 extern crate tokio;
+extern crate ureq;
 
 use crate::tokio::executor::spawn;
 use crate::tokio::io::write_all;
@@ -21,14 +23,29 @@ fn main() {
     };
     let keys: Vec<String> = {
         let keys: Vec<String> = std::env::args().skip(1).collect();
-        println!("Got keys {:?}", keys);
-
         if keys.is_empty() {
             eprintln!("No keys passed");
             exit(1);
         }
 
-        keys
+        println!("Got keys {:?}", keys);
+        let mut good_keys: Vec<String> = Vec::new();
+        for value in keys {
+            let url: String =
+                format!("https://www.googleapis.com/youtube/v3/channels?part=id&id=UC-lHJZR3Gqxm24_Vd_AJ5Yw&key={}", value);
+            let path: &str = url.as_str();
+
+            let resp = ureq::get(path).call();
+
+            if resp.ok() {
+                println!("{} is good", value);
+                good_keys.push(value);
+            }
+        }
+
+        println!("Keeping {} keys", good_keys.len());
+
+        good_keys
     };
 
     let future = listener.incoming()
