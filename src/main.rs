@@ -2,14 +2,14 @@ extern crate rand;
 extern crate tokio;
 extern crate ureq;
 
+use ::std::net::{SocketAddr, IpAddr, Ipv4Addr};
+use ::std::process::exit;
+use rand::{thread_rng, Rng};
 use crate::tokio::executor::spawn;
 use crate::tokio::io::write_all;
 use crate::tokio::net::{TcpListener,TcpStream};
 use crate::tokio::prelude::{Future,Stream};
 use crate::tokio::run;
-use ::std::net::{SocketAddr, IpAddr, Ipv4Addr};
-use ::std::process::exit;
-use rand::{thread_rng, Rng};
 
 static PORT: u16 = 3333u16;
 
