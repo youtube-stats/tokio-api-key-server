@@ -6,16 +6,30 @@ use crate::tokio::net::{TcpListener,TcpStream};
 use crate::tokio::prelude::{Future,Stream};
 use crate::tokio::run;
 use ::std::net::{SocketAddr, IpAddr, Ipv4Addr};
+use ::std::process::exit;
 
 static PORT: u16 = 3333u16;
 
 fn main() {
-    let ip: IpAddr = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
-    let port: u16 = PORT;
+    let listener: TcpListener = {
+        let ip: IpAddr = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
+        let port: u16 = PORT;
 
-    let addr: SocketAddr = SocketAddr::new(ip, port);
-    let listener: TcpListener = TcpListener::bind(&addr)
-        .expect("unable to bind TCP listener");
+        let addr: SocketAddr = SocketAddr::new(ip, port);
+        TcpListener::bind(&addr)
+            .expect("unable to bind TCP listener")
+    };
+    let keys: Vec<String> = {
+        let keys: Vec<String> = std::env::args().skip(1).collect();
+        println!("Got keys {:?}", keys);
+
+        if keys.is_empty() {
+            eprintln!("No keys passed");
+            exit(1);
+        }
+
+        keys
+    };
 
     let future = listener.incoming()
         .map_err(|e| eprintln!("accept failed = {:?}", e))
