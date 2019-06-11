@@ -54,8 +54,9 @@ fn main() {
             let n: usize = thread_rng().gen_range(0, keys.len());
             let buf: String = keys[n].clone();
 
-            let f = write_all(a, buf).then(move|result| {
+            let f = write_all(a, buf).then(|result| {
                 if result.is_ok() {
+                    println!("Sent key");
                     Ok(())
                 } else {
                     let err = result.is_err();
