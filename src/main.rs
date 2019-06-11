@@ -1,42 +1,32 @@
 extern crate tokio;
 
 use crate::tokio::executor::spawn;
-use crate::tokio::io::AsyncRead;
-use crate::tokio::io::copy;
-use crate::tokio::net::TcpListener;
-use crate::tokio::prelude::Future;
-use crate::tokio::prelude::Stream;
+use crate::tokio::io::write_all;
+use crate::tokio::net::{TcpListener,TcpStream};
+use crate::tokio::prelude::{Future,Stream};
 use crate::tokio::run;
+use ::std::net::{SocketAddr, IpAddr, Ipv4Addr};
+
+static PORT: u16 = 3333u16;
 
 fn main() {
-    // Bind the server's socket.
-    let addr = "127.0.0.1:12345".parse().unwrap();
-    let listener = TcpListener::bind(&addr)
+    let ip: IpAddr = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
+    let port: u16 = PORT;
+
+    let addr: SocketAddr = SocketAddr::new(ip, port);
+    let listener: TcpListener = TcpListener::bind(&addr)
         .expect("unable to bind TCP listener");
 
-    // Pull out a stream of sockets for incoming connections
     let future = listener.incoming()
         .map_err(|e| eprintln!("accept failed = {:?}", e))
-        .for_each(|sock| {
-            // Split up the reading and writing parts of the
-            // socket.
-            let (reader, writer) = sock.split();
-
-            // A future that echos the data and returns how
-            // many bytes were copied...
-            let bytes_copied = copy(reader, writer);
-
-            // ... after which we'll print what happened.
-            let f = bytes_copied.map(|amt| {
-                println!("wrote {:?} bytes", amt)
-            }).map_err(|err| {
-                eprintln!("IO error {:?}", err)
+        .for_each(|stream: TcpStream| {
+            let f = write_all(stream, "hello world\n").then(|result| {
+                println!("wrote to stream; success={:?}", result.is_ok());
+                Ok(())
             });
 
-            // Spawn the future as a concurrent task.
             spawn(f)
         });
 
-    // Start the Tokio runtime
     run(future);
 }
