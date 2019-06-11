@@ -54,9 +54,15 @@ fn main() {
             let n: usize = thread_rng().gen_range(0, keys.len());
             let buf: String = keys[n].clone();
 
-            let f = write_all(a, buf).then(|result| {
-                println!("wrote to stream; success={:?}", result.is_ok());
-                Ok(())
+            let f = write_all(a, buf).then(move|result| {
+                if result.is_ok() {
+                    Ok(())
+                } else {
+                    let err = result.is_err();
+                    eprintln!("failed to write to stream: {:?}", err);
+
+                    Err(())
+                }
             });
 
             spawn(f)
