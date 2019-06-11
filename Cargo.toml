@@ -1,0 +1,12 @@
+[package]
+name = "tokio-api--key-server"
+version = "0.1.0"
+authors = ["Salvador Guzman <guzmansalv@gmail.com>"]
+edition = "2018"
+
+[[bin]]
+name = "keys"
+path = "src/main.rs"
+
+[dependencies]
+tokio = "0.1.21"
