@@ -9,6 +9,7 @@ use crate::tokio::prelude::{Future,Stream};
 use crate::tokio::run;
 use ::std::net::{SocketAddr, IpAddr, Ipv4Addr};
 use ::std::process::exit;
+use rand::{thread_rng, Rng};
 
 static PORT: u16 = 3333u16;
 
@@ -35,7 +36,7 @@ fn main() {
                 format!("https://www.googleapis.com/youtube/v3/channels?part=id&id=UC-lHJZR3Gqxm24_Vd_AJ5Yw&key={}", value);
             let path: &str = url.as_str();
 
-            let resp = ureq::get(path).call();
+            let resp = ureq::head(path).call();
 
             if resp.ok() {
                 println!("{} is good", value);
@@ -44,14 +45,16 @@ fn main() {
         }
 
         println!("Keeping {} keys", good_keys.len());
-
         good_keys
     };
 
     let future = listener.incoming()
         .map_err(|e| eprintln!("accept failed = {:?}", e))
-        .for_each(|stream: TcpStream| {
-            let f = write_all(stream, "hello world\n").then(|result| {
+        .for_each(move |a: TcpStream| {
+            let n: usize = thread_rng().gen_range(0, keys.len());
+            let buf: String = keys[n].clone();
+
+            let f = write_all(a, buf).then(|result| {
                 println!("wrote to stream; success={:?}", result.is_ok());
                 Ok(())
             });
