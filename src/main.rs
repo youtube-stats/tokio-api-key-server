@@ -74,7 +74,10 @@ pub fn get_random_key<'a>(keys: &'a Vec<String>, conds: &'a Vec<bool>) -> &'a [u
     let high: usize = keys.len();
     let n: usize = thread_rng().gen_range(low, high);
 
-    keys[n].as_bytes()
+    let key: &String = &keys[n];
+    println!("GET {}", key);
+
+    key.as_bytes()
 }
 
 fn main() {
@@ -112,8 +115,6 @@ fn main() {
         }
 
         let mut stream: TcpStream = stream.unwrap();
-        println!("Got request");
-
         let conds: Vec<bool> = conds1.lock().unwrap().clone();
 
         let buf: &[u8] = get_random_key(&keys1, &conds);
