@@ -5,13 +5,13 @@ use ::std::net::{SocketAddr, IpAddr, Ipv4Addr};
 use ::std::process::exit;
 use rand::{thread_rng, Rng};
 use std::net::{TcpListener, TcpStream};
-use std::convert::TryInto;
 use std::io::Write;
 use std::thread::{spawn, sleep};
-use std::sync::Mutex;
+use std::time::Duration;
+use std::sync::{Arc, Mutex};
 
 static PORT: u16 = 3333u16;
-static SLEEP: u64 = 360u64;
+static SLEEP: u64 = 5u64;
 
 pub fn listen() -> TcpListener {
     let ip: IpAddr = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
@@ -45,40 +45,61 @@ pub fn key_init() -> Vec<String> {
     }
 }
 
-pub fn key_status(keys: &Vec<String>) -> Mutex<Vec<bool>> {
-    let mut t: Vec<bool> = Vec::new();
+pub fn key_status(keys: &Vec<String>) -> Arc<Mutex<Vec<bool>>> {
+    let mut data: Vec<bool> = Vec::new();
 
     for i in 0..keys.len() {
         let value: &String = &keys[i];
         let value = check_key(value);
 
-        t.push(value);
+        data.push(value);
     }
 
-    Mutex::new(t)
+    Arc::new(Mutex::new(data))
+}
+
+pub fn get_random_key<'a>(keys: &'a Vec<String>, conds: &'a Vec<bool>) -> &'a [u8] {
+    let mut good_keys: Vec<&String> = Vec::new();
+
+    for i in 0..keys.len() {
+        let value: &String = &keys[i];
+        let cond: &bool  = &conds[i];
+
+        if *cond {
+            good_keys.push(value);
+        }
+    }
+
+    let low: usize = 0;
+    let high: usize = keys.len();
+    let n: usize = thread_rng().gen_range(low, high);
+
+    keys[n].as_bytes()
 }
 
 fn main() {
     println!("Starting key service");
 
     let listener: TcpListener = listen();
-    let keys: Vec<String> = key_init();
-    let len: usize = keys.len();
-    let conds: Mutex<Vec<bool>> = key_status(&keys);
+    let keys1: Arc<Vec<String>> = Arc::new(key_init());
+    let keys2: Arc<Vec<String>> = keys1.clone();
 
-    spawn(move || {
+    let conds1: Arc<Mutex<Vec<bool>>> = key_status(&keys1);
+    let conds2: Arc<Mutex<Vec<bool>>> = Arc::clone(&conds1);
+
+    spawn( move || {
         println!("Starting key audit service");
         let secs: u64 = SLEEP;
-        let dur = std::time::Duration::from_secs(secs);
+        let dur: Duration = std::time::Duration::from_secs(secs);
 
         loop {
-            for i in 0..len {
+            for i in 0..keys2.len() {
                 sleep(dur);
-                let value: &String = &keys[i];
+                let value: &String = &keys2[i];
                 let cond: bool = check_key(value);
 
                 {
-                    conds.lock().unwrap()[i] = cond;
+                    conds2.lock().unwrap()[i] = cond;
                 }
             }
         }
@@ -92,9 +113,10 @@ fn main() {
 
         let mut stream: TcpStream = stream.unwrap();
         println!("Got request");
-        let n: u32 = thread_rng().gen_range(0, &len).try_into().unwrap();
 
-        let buf: [u8; 1] = [8u8];
+        let conds: Vec<bool> = conds1.lock().unwrap().clone();
+
+        let buf: &[u8] = get_random_key(&keys1, &conds);
         stream.write(&buf)
             .expect("Could not write to socket");
     }
