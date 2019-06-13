@@ -7,8 +7,11 @@ use rand::{thread_rng, Rng};
 use std::net::{TcpListener, TcpStream};
 use std::convert::TryInto;
 use std::io::Write;
+use std::thread::{spawn, sleep};
+use std::sync::Mutex;
 
 static PORT: u16 = 3333u16;
+static SLEEP: u64 = 360u64;
 
 pub fn listen() -> TcpListener {
     let ip: IpAddr = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
@@ -42,23 +45,44 @@ pub fn key_init() -> Vec<String> {
     }
 }
 
-pub fn key_status(keys: &Vec<String>) -> Vec<bool> {
-    let mut status: Vec<bool> = Vec::new();
+pub fn key_status(keys: &Vec<String>) -> Mutex<Vec<bool>> {
+    let mut t: Vec<bool> = Vec::new();
 
     for i in 0..keys.len() {
         let value: &String = &keys[i];
         let value = check_key(value);
 
-        status.push(value);
+        t.push(value);
     }
 
-    status
+    Mutex::new(t)
 }
 
 fn main() {
+    println!("Starting key service");
+
     let listener: TcpListener = listen();
     let keys: Vec<String> = key_init();
-    let mut conds: Vec<bool> = key_status(&keys);
+    let len: usize = keys.len();
+    let conds: Mutex<Vec<bool>> = key_status(&keys);
+
+    spawn(move || {
+        println!("Starting key audit service");
+        let secs: u64 = SLEEP;
+        let dur = std::time::Duration::from_secs(secs);
+
+        loop {
+            for i in 0..len {
+                sleep(dur);
+                let value: &String = &keys[i];
+                let cond: bool = check_key(value);
+
+                {
+                    conds.lock().unwrap()[i] = cond;
+                }
+            }
+        }
+    });
 
     for stream in listener.incoming() {
         if stream.is_err() {
@@ -68,7 +92,7 @@ fn main() {
 
         let mut stream: TcpStream = stream.unwrap();
         println!("Got request");
-        let n: u32 = thread_rng().gen_range(0, keys.len()).try_into().unwrap();
+        let n: u32 = thread_rng().gen_range(0, &len).try_into().unwrap();
 
         let buf: [u8; 1] = [8u8];
         stream.write(&buf)
