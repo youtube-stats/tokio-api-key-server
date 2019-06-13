@@ -11,7 +11,7 @@ use std::time::Duration;
 use std::sync::{Arc, Mutex};
 
 static PORT: u16 = 3333u16;
-static SLEEP: u64 = 5u64;
+static SLEEP: u64 = 60u64;
 
 pub fn listen() -> TcpListener {
     let ip: IpAddr = IpAddr::V4(Ipv4Addr::new(0, 0, 0, 0));
