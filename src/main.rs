@@ -71,10 +71,10 @@ pub fn get_random_key<'a>(keys: &'a Vec<String>, conds: &'a Vec<bool>) -> &'a [u
     }
 
     let low: usize = 0;
-    let high: usize = keys.len();
+    let high: usize = good_keys.len();
     let n: usize = thread_rng().gen_range(low, high);
 
-    let key: &String = &keys[n];
+    let key: &String = &good_keys[n];
     println!("GET {}", key);
 
     key.as_bytes()
